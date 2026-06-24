@@ -32,17 +32,17 @@ function sumType(txs: Transaction[], type: Transaction['type']) {
 function fmt(n: number) { return Math.abs(n).toLocaleString('ko-KR'); }
 
 export default function HomeTab({ state, onChange }: Props) {
-  // viewDate는 항상 청구 월의 1일로 정규화 (25일 기산)
   const [viewDate, setViewDate] = useState(() => getBillingDate());
   const [showAdd, setShowAdd] = useState(false);
   const [showCat, setShowCat] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
   const [showFixed, setShowFixed] = useState(false);
   const [catFilter, setCatFilter] = useState<string | null>(null);
+  const [editTx, setEditTx] = useState<Transaction | null>(null);
 
   const bYear = viewDate.getFullYear();
   const bMonth = viewDate.getMonth() + 1;
-  const year = new Date().getFullYear(); // 올해 요약은 달력 연도 기준
+  const year = new Date().getFullYear();
 
   const mTxs = state.transactions.filter(t => isInBillingMonth(t.date, bYear, bMonth));
   const yTxs = state.transactions.filter(t => t.date.startsWith(String(year)));
@@ -58,17 +58,14 @@ export default function HomeTab({ state, onChange }: Props) {
   const fixedTotal = state.fixedExpenses.reduce((s, f) => s + f.amount, 0);
   const totalBal = state.accounts.reduce((s, a) => s + a.balance, 0);
 
-  // 비율 바 (지출 red + 저축 blue)
   const totalUsed = mExp + mSave;
   const expPct = totalUsed > 0 ? Math.min(100, Math.round((mExp / totalUsed) * 100)) : 0;
   const savPct = totalUsed > 0 ? Math.min(100 - expPct, Math.round((mSave / totalUsed) * 100)) : 0;
 
-  // 이체는 제외하고 지출/수입만 구분 칩에 표시
   const usedCats = Array.from(new Set(
     mTxs.filter(t => t.type !== 'transfer' && t.category).map(t => t.category)
   ));
   const filtered = catFilter ? mTxs.filter(t => t.category === catFilter) : mTxs;
-  // 이체는 홈탭 목록에서도 이체입금(수신)만 표시
   const displayTxs = filtered.filter(t => t.type !== 'transfer' || t.toAccountId !== undefined);
   const sorted = [...displayTxs].sort((a, b) => b.date.localeCompare(a.date));
   const filteredExpTotal = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -91,6 +88,35 @@ export default function HomeTab({ state, onChange }: Props) {
     onChange({ ...state, transactions: [...state.transactions, { ...tx, id }], accounts: newAccounts });
   };
 
+  const handleEditTx = (updated: Transaction) => {
+    const old = state.transactions.find(t => t.id === updated.id);
+    if (!old) return;
+    let newAccounts = state.accounts.map(a => {
+      if (old.type === 'expense' && a.id === old.accountId) return { ...a, balance: a.balance + old.amount };
+      if (old.type === 'income' && a.id === old.accountId) return { ...a, balance: a.balance - old.amount };
+      if (old.type === 'transfer') {
+        if (a.id === old.accountId) return { ...a, balance: a.balance + old.amount };
+        if (a.id === old.toAccountId) return { ...a, balance: a.balance - old.amount };
+      }
+      return a;
+    });
+    newAccounts = newAccounts.map(a => {
+      if (updated.type === 'expense' && a.id === updated.accountId) return { ...a, balance: a.balance - updated.amount };
+      if (updated.type === 'income' && a.id === updated.accountId) return { ...a, balance: a.balance + updated.amount };
+      if (updated.type === 'transfer') {
+        if (a.id === updated.accountId) return { ...a, balance: a.balance - updated.amount };
+        if (a.id === updated.toAccountId) return { ...a, balance: a.balance + updated.amount };
+      }
+      return a;
+    });
+    onChange({
+      ...state,
+      accounts: newAccounts,
+      transactions: state.transactions.map(t => t.id === updated.id ? updated : t),
+    });
+    setEditTx(null);
+  };
+
   const deleteTx = (txId: string) => {
     const tx = state.transactions.find(t => t.id === txId);
     if (!tx) return;
@@ -104,6 +130,21 @@ export default function HomeTab({ state, onChange }: Props) {
       return a;
     });
     onChange({ ...state, transactions: state.transactions.filter(t => t.id !== txId), accounts: newAccounts });
+  };
+
+  const handleApplyFixed = (txs: Omit<Transaction, 'id'>[]) => {
+    let newState = { ...state };
+    txs.forEach(tx => {
+      const id = `tx_${Date.now()}_${Math.random()}`;
+      newState = {
+        ...newState,
+        transactions: [...newState.transactions, { ...tx, id }],
+        accounts: newState.accounts.map(a =>
+          a.id === tx.accountId ? { ...a, balance: a.balance - tx.amount } : a
+        ),
+      };
+    });
+    onChange(newState);
   };
 
   const txColor = (type: Transaction['type']) =>
@@ -274,7 +315,7 @@ export default function HomeTab({ state, onChange }: Props) {
           )}
         </div>
 
-        {/* 이번달 내역 */}
+        {/* 전체 내역 */}
         <div className="bg-white rounded-2xl border border-[#E5E5EA] flex flex-col overflow-hidden">
           <div className="flex justify-between items-center px-3 pt-3 pb-2">
             <span className="text-[12px] font-semibold text-[#1C1C1E]">전체 내역</span>
@@ -306,7 +347,11 @@ export default function HomeTab({ state, onChange }: Props) {
               const acc = state.accounts.find(a => a.id === t.accountId);
               const fromAcc = t.type === 'transfer' ? state.accounts.find(a => a.id === t.accountId) : null;
               return (
-                <div key={t.id} className="flex items-start justify-between py-1.5 border-b border-[#F2F2F7] last:border-0 group">
+                <div
+                  key={t.id}
+                  className="flex items-start justify-between py-1.5 border-b border-[#F2F2F7] last:border-0 group cursor-pointer active:bg-[#F2F2F7] rounded-lg"
+                  onClick={() => setEditTx(t)}
+                >
                   <div className="flex items-start gap-1.5 min-w-0">
                     <div className={`w-4 h-4 rounded-full mt-0.5 shrink-0 opacity-20 ${txDotBg(t.type)}`} />
                     <div className="min-w-0">
@@ -320,7 +365,10 @@ export default function HomeTab({ state, onChange }: Props) {
                     <span className={`text-[11px] font-semibold ${txColor(t.type)}`}>
                       {txSign(t.type)}{t.amount.toLocaleString()}
                     </span>
-                    <button onClick={() => deleteTx(t.id)} className="text-[9px] text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity">✕</button>
+                    <button
+                      onClick={e => { e.stopPropagation(); deleteTx(t.id); }}
+                      className="text-[9px] text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity"
+                    >✕</button>
                   </div>
                 </div>
               );
@@ -336,8 +384,20 @@ export default function HomeTab({ state, onChange }: Props) {
 
       {showAdd && (
         <AddTransactionModal
-          accounts={state.accounts} categories={state.categories}
-          onAdd={addTx} onClose={() => setShowAdd(false)}
+          accounts={state.accounts}
+          categories={state.categories}
+          onAdd={tx => { addTx(tx); setShowAdd(false); }}
+          onClose={() => setShowAdd(false)}
+        />
+      )}
+      {editTx && (
+        <AddTransactionModal
+          accounts={state.accounts}
+          categories={state.categories}
+          editTx={editTx}
+          onAdd={addTx}
+          onEdit={handleEditTx}
+          onClose={() => setEditTx(null)}
         />
       )}
       {showCat && (
@@ -366,6 +426,7 @@ export default function HomeTab({ state, onChange }: Props) {
           fixedExpenses={state.fixedExpenses}
           accounts={state.accounts}
           onUpdate={expenses => onChange({ ...state, fixedExpenses: expenses })}
+          onApply={handleApplyFixed}
           onClose={() => setShowFixed(false)}
         />
       )}

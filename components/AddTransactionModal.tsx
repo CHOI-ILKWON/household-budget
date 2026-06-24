@@ -7,7 +7,9 @@ interface Props {
   categories: string[];
   defaultAccountId?: number;
   defaultType?: TransactionType;
+  editTx?: Transaction;
   onAdd: (tx: Omit<Transaction, 'id'>) => void;
+  onEdit?: (tx: Transaction) => void;
   onClose: () => void;
 }
 
@@ -17,20 +19,23 @@ const TABS: { label: string; value: TransactionType; color: string }[] = [
   { label: '이체', value: 'transfer', color: 'text-[#007AFF]' },
 ];
 
-export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, onAdd, onClose }: Props) {
-  const [type, setType] = useState<TransactionType>(defaultType ?? 'expense');
-  const [accountId, setAccountId] = useState(defaultAccountId ?? accounts[0]?.id ?? 1);
-  const [toAccountId, setToAccountId] = useState(accounts.find(a => a.id !== accountId)?.id ?? accounts[1]?.id ?? 2);
-  const [category, setCategory] = useState(categories[0] ?? '기타');
-  const [amount, setAmount] = useState('');
-  const [note, setNote] = useState('');
-  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, editTx, onAdd, onEdit, onClose }: Props) {
+  const isEdit = !!editTx;
+  const [type, setType] = useState<TransactionType>(editTx?.type ?? defaultType ?? 'expense');
+  const [accountId, setAccountId] = useState(editTx?.accountId ?? defaultAccountId ?? accounts[0]?.id ?? 1);
+  const [toAccountId, setToAccountId] = useState(
+    editTx?.toAccountId ?? accounts.find(a => a.id !== (editTx?.accountId ?? defaultAccountId ?? accounts[0]?.id))?.id ?? accounts[1]?.id ?? 2
+  );
+  const [category, setCategory] = useState(editTx?.category || categories[0] || '기타');
+  const [amount, setAmount] = useState(editTx ? editTx.amount.toLocaleString('ko-KR') : '');
+  const [note, setNote] = useState(editTx?.note ?? '');
+  const [date, setDate] = useState(editTx?.date ?? new Date().toISOString().slice(0, 10));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const num = parseInt(amount.replace(/,/g, ''), 10);
     if (!num || num <= 0) return;
-    onAdd({
+    const txData = {
       date,
       type,
       accountId,
@@ -38,7 +43,12 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
       category: type === 'transfer' ? '' : category,
       amount: num,
       note,
-    });
+    };
+    if (isEdit && editTx && onEdit) {
+      onEdit({ ...editTx, ...txData });
+    } else {
+      onAdd(txData);
+    }
     onClose();
   };
 
@@ -56,12 +66,10 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
         className="relative bg-white rounded-t-3xl p-6 w-full max-w-md"
         onClick={e => e.stopPropagation()}
       >
-        {/* 드래그 핸들 */}
         <div className="w-10 h-1 bg-[#E5E5EA] rounded-full mx-auto mb-5" />
 
-        <h2 className="text-[17px] font-semibold text-[#1C1C1E] mb-5">내역 추가</h2>
+        <h2 className="text-[17px] font-semibold text-[#1C1C1E] mb-5">{isEdit ? '내역 수정' : '내역 추가'}</h2>
 
-        {/* 타입 세그먼트 */}
         <div className="flex bg-[#E5E5EA] rounded-xl p-0.5 mb-5">
           {TABS.map(t => (
             <button
@@ -153,7 +161,7 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
             type="submit"
             className="w-full bg-[#007AFF] text-white py-3.5 rounded-2xl text-[17px] font-semibold mt-2 transition-all duration-200 active:opacity-80"
           >
-            추가
+            {isEdit ? '수정 완료' : '추가'}
           </button>
         </form>
       </div>

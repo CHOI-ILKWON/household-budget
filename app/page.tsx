@@ -36,6 +36,10 @@ export default function App() {
     { id: 'add', label: '+' },
   ];
 
+  // 삭제된 계좌 탭이 활성화돼 있으면 홈으로 이동
+  const validTabIds = new Set<string | number>(['home', 'stats', 'add', ...state.accounts.map(a => a.id)]);
+  const safeActiveTab = validTabIds.has(activeTab as string | number) ? activeTab : 'home';
+
   return (
     <div className="min-h-screen bg-[#F2F2F7]">
       <div className="max-w-md mx-auto">
@@ -51,7 +55,7 @@ export default function App() {
                     else setActiveTab(t.id);
                   }}
                   className={`px-3 py-2.5 text-[12px] whitespace-nowrap transition-all duration-200 min-h-[44px] border-b-2 ${
-                    activeTab === t.id && t.id !== 'add'
+                    safeActiveTab === t.id && t.id !== 'add'
                       ? 'font-semibold text-[#1C1C1E] border-[#007AFF]'
                       : t.id === 'add'
                       ? 'text-[#007AFF] font-medium border-transparent'
@@ -67,11 +71,16 @@ export default function App() {
 
         {/* 콘텐츠 */}
         <div className="px-4 pt-4 pb-10">
-          {activeTab === 'home' && <HomeTab state={state} onChange={handleChange} />}
-          {typeof activeTab === 'number' && (
-            <AccountTab accountId={activeTab} state={state} onChange={handleChange} />
+          {safeActiveTab === 'home' && <HomeTab state={state} onChange={handleChange} />}
+          {typeof safeActiveTab === 'number' && (
+            <AccountTab
+              accountId={safeActiveTab}
+              state={state}
+              onChange={handleChange}
+              onAccountDeleted={() => setActiveTab('home')}
+            />
           )}
-          {activeTab === 'stats' && <AnnualStats state={state} />}
+          {safeActiveTab === 'stats' && <AnnualStats state={state} />}
         </div>
       </div>
 
