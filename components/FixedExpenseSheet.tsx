@@ -56,7 +56,8 @@ export default function FixedExpenseSheet({ fixedExpenses, accounts, onUpdate, o
 
   const handleApply = () => {
     if (fixedExpenses.length === 0) return;
-    const today = new Date().toISOString().slice(0, 10);
+    const d = new Date();
+    const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     const txs: Omit<Transaction, 'id'>[] = fixedExpenses.map(f => ({
       date: today,
       type: 'expense' as const,

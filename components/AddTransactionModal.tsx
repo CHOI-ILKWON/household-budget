@@ -29,7 +29,11 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
   const [category, setCategory] = useState(editTx?.category || categories[0] || '기타');
   const [amount, setAmount] = useState(editTx ? editTx.amount.toLocaleString('ko-KR') : '');
   const [note, setNote] = useState(editTx?.note ?? '');
-  const [date, setDate] = useState(editTx?.date ?? new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => {
+    if (editTx?.date) return editTx.date;
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
