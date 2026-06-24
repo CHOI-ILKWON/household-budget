@@ -1,0 +1,162 @@
+'use client';
+import { useState } from 'react';
+import { Account, Transaction, TransactionType } from '@/lib/types';
+
+interface Props {
+  accounts: Account[];
+  categories: string[];
+  defaultAccountId?: number;
+  defaultType?: TransactionType;
+  onAdd: (tx: Omit<Transaction, 'id'>) => void;
+  onClose: () => void;
+}
+
+const TABS: { label: string; value: TransactionType; color: string }[] = [
+  { label: '지출', value: 'expense', color: 'text-[#FF3B30]' },
+  { label: '수입', value: 'income', color: 'text-[#34C759]' },
+  { label: '이체', value: 'transfer', color: 'text-[#007AFF]' },
+];
+
+export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, onAdd, onClose }: Props) {
+  const [type, setType] = useState<TransactionType>(defaultType ?? 'expense');
+  const [accountId, setAccountId] = useState(defaultAccountId ?? accounts[0]?.id ?? 1);
+  const [toAccountId, setToAccountId] = useState(accounts.find(a => a.id !== accountId)?.id ?? accounts[1]?.id ?? 2);
+  const [category, setCategory] = useState(categories[0] ?? '기타');
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const num = parseInt(amount.replace(/,/g, ''), 10);
+    if (!num || num <= 0) return;
+    onAdd({
+      date,
+      type,
+      accountId,
+      toAccountId: type === 'transfer' ? toAccountId : undefined,
+      category: type === 'transfer' ? '' : category,
+      amount: num,
+      note,
+    });
+    onClose();
+  };
+
+  const fmtAmount = (v: string) => {
+    const n = parseInt(v.replace(/[^0-9]/g, ''), 10);
+    return n ? n.toLocaleString('ko-KR') : '';
+  };
+
+  const activeTab = TABS.find(t => t.value === type)!;
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col justify-end items-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+      <div
+        className="relative bg-white rounded-t-3xl p-6 w-full max-w-md"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* 드래그 핸들 */}
+        <div className="w-10 h-1 bg-[#E5E5EA] rounded-full mx-auto mb-5" />
+
+        <h2 className="text-[17px] font-semibold text-[#1C1C1E] mb-5">내역 추가</h2>
+
+        {/* 타입 세그먼트 */}
+        <div className="flex bg-[#E5E5EA] rounded-xl p-0.5 mb-5">
+          {TABS.map(t => (
+            <button
+              key={t.value}
+              onClick={() => setType(t.value)}
+              className={`flex-1 py-2 text-[14px] font-medium rounded-[10px] transition-all duration-200 ${
+                type === t.value ? `bg-white shadow-sm ${t.color}` : 'text-[#8E8E93]'
+              }`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide font-medium block mb-1.5">날짜</label>
+            <input
+              type="date" value={date} onChange={e => setDate(e.target.value)}
+              className="bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full text-[#1C1C1E]"
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide font-medium block mb-1.5">
+              {type === 'transfer' ? '출금 계좌' : '계좌'}
+            </label>
+            <select
+              value={accountId}
+              onChange={e => setAccountId(Number(e.target.value))}
+              className="bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full text-[#1C1C1E] appearance-none"
+            >
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.id}. {a.name} ({a.bank})</option>)}
+            </select>
+          </div>
+
+          {type === 'transfer' && (
+            <div>
+              <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide font-medium block mb-1.5">입금 계좌</label>
+              <select
+                value={toAccountId}
+                onChange={e => setToAccountId(Number(e.target.value))}
+                className="bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full text-[#1C1C1E] appearance-none"
+              >
+                {accounts.filter(a => a.id !== accountId).map(a => (
+                  <option key={a.id} value={a.id}>{a.id}. {a.name} ({a.bank})</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {type !== 'transfer' && (
+            <div>
+              <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide font-medium block mb-1.5">구분</label>
+              <select
+                value={category}
+                onChange={e => setCategory(e.target.value)}
+                className="bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full text-[#1C1C1E] appearance-none"
+              >
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide font-medium block mb-1.5">금액</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="0"
+              value={amount}
+              onChange={e => setAmount(fmtAmount(e.target.value))}
+              className={`bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full font-semibold ${activeTab.color}`}
+            />
+          </div>
+
+          <div>
+            <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide font-medium block mb-1.5">내용</label>
+            <input
+              type="text"
+              placeholder="내용 입력 (선택)"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              className="bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full text-[#1C1C1E]"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-[#007AFF] text-white py-3.5 rounded-2xl text-[17px] font-semibold mt-2 transition-all duration-200 active:opacity-80"
+          >
+            추가
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
