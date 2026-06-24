@@ -10,6 +10,7 @@ interface Props {
   editTx?: Transaction;
   onAdd: (tx: Omit<Transaction, 'id'>) => void;
   onEdit?: (tx: Transaction) => void;
+  onDelete?: (id: string) => void;
   onClose: () => void;
 }
 
@@ -19,7 +20,7 @@ const TABS: { label: string; value: TransactionType; color: string }[] = [
   { label: '이체', value: 'transfer', color: 'text-[#007AFF]' },
 ];
 
-export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, editTx, onAdd, onEdit, onClose }: Props) {
+export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, editTx, onAdd, onEdit, onDelete, onClose }: Props) {
   const isEdit = !!editTx;
   const [type, setType] = useState<TransactionType>(editTx?.type ?? defaultType ?? 'expense');
   const [accountId, setAccountId] = useState(editTx?.accountId ?? defaultAccountId ?? accounts[0]?.id ?? 1);
@@ -167,6 +168,15 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
           >
             {isEdit ? '수정 완료' : '추가'}
           </button>
+          {isEdit && onDelete && editTx && (
+            <button
+              type="button"
+              onClick={() => { onDelete(editTx.id); onClose(); }}
+              className="w-full bg-[#FFF1F0] text-[#FF3B30] py-3.5 rounded-2xl text-[17px] font-semibold transition-all duration-200 active:opacity-80"
+            >
+              삭제
+            </button>
+          )}
         </form>
       </div>
     </div>

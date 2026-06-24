@@ -397,6 +397,7 @@ export default function HomeTab({ state, onChange }: Props) {
           editTx={editTx}
           onAdd={addTx}
           onEdit={handleEditTx}
+          onDelete={id => { deleteTx(id); setEditTx(null); }}
           onClose={() => setEditTx(null)}
         />
       )}

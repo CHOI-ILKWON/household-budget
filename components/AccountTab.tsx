@@ -284,6 +284,7 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
           editTx={editTx}
           onAdd={addTx}
           onEdit={handleEditTx}
+          onDelete={id => { deleteTx(id); setEditTx(null); }}
           onClose={() => setEditTx(null)}
         />
       )}
