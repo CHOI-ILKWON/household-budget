@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { AppState } from '@/lib/types';
+import { AppState, Transaction } from '@/lib/types';
 
 interface Props { state: AppState }
 
@@ -11,6 +11,7 @@ const DOT_COLORS = [
 
 export default function AnnualStats({ state }: Props) {
   const [tab, setTab] = useState<'expense' | 'income'>('expense');
+  const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInstance = useRef<unknown>(null);
   const year = new Date().getFullYear();
@@ -115,21 +116,49 @@ export default function AnnualStats({ state }: Props) {
             {sorted.map(([cat, amount], i) => {
               const pct = total > 0 ? Math.round((amount / total) * 100) : 0;
               const color = DOT_COLORS[i % DOT_COLORS.length];
+              const isOpen = expandedCat === cat;
+              const items: Transaction[] = yearTxs
+                .filter(t => t.type === tab && t.category === cat)
+                .sort((a, b) => b.date.localeCompare(a.date));
               return (
                 <div key={cat}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
-                      <span className="text-[13px] text-[#1C1C1E]">{cat}</span>
+                  <button
+                    className="w-full text-left"
+                    onClick={() => setExpandedCat(isOpen ? null : cat)}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+                        <span className="text-[13px] text-[#1C1C1E]">{cat}</span>
+                        <span className="text-[10px] text-[#8E8E93]">{isOpen ? '▲' : '▼'}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[13px] font-semibold text-[#1C1C1E]">{amount.toLocaleString()}원</span>
+                        <span className="text-[11px] text-[#8E8E93] w-8 text-right">{pct}%</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-[13px] font-semibold text-[#1C1C1E]">{amount.toLocaleString()}원</span>
-                      <span className="text-[11px] text-[#8E8E93] w-8 text-right">{pct}%</span>
+                    <div className="w-full bg-[#F2F2F7] rounded-full h-1.5 overflow-hidden">
+                      <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
                     </div>
-                  </div>
-                  <div className="w-full bg-[#F2F2F7] rounded-full h-1.5 overflow-hidden">
-                    <div className="h-full rounded-full transition-all duration-300" style={{ width: `${pct}%`, background: color }} />
-                  </div>
+                  </button>
+                  {isOpen && (
+                    <div className="mt-2 ml-4 rounded-xl overflow-hidden border border-[#F2F2F7]">
+                      {items.map(t => {
+                        const acc = state.accounts.find(a => a.id === t.accountId);
+                        return (
+                          <div key={t.id} className="flex justify-between items-center px-3 py-2 bg-[#F9F9F9] border-b border-[#F2F2F7] last:border-0">
+                            <div>
+                              <div className="text-[12px] text-[#1C1C1E]">{t.note || t.category}</div>
+                              <div className="text-[10px] text-[#8E8E93]">{t.date} · {acc?.name ?? ''}</div>
+                            </div>
+                            <span className="text-[12px] font-semibold" style={{ color }}>
+                              {t.amount.toLocaleString()}원
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
