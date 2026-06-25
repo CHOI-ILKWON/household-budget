@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Account, Transaction, TransactionType } from '@/lib/types';
+import { Account, Transaction, TransactionType, FixedExpense } from '@/lib/types';
 
 interface Props {
   accounts: Account[];
@@ -11,6 +11,7 @@ interface Props {
   onAdd: (tx: Omit<Transaction, 'id'>) => void;
   onEdit?: (tx: Transaction) => void;
   onDelete?: (id: string) => void;
+  onAddFixed?: (item: Omit<FixedExpense, 'id'>) => void;
   onClose: () => void;
 }
 
@@ -20,7 +21,7 @@ const TABS: { label: string; value: TransactionType; color: string }[] = [
   { label: '이체', value: 'transfer', color: 'text-[#007AFF]' },
 ];
 
-export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, editTx, onAdd, onEdit, onDelete, onClose }: Props) {
+export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, editTx, onAdd, onEdit, onDelete, onAddFixed, onClose }: Props) {
   const isEdit = !!editTx;
   const [type, setType] = useState<TransactionType>(editTx?.type ?? defaultType ?? 'expense');
   const [accountId, setAccountId] = useState(editTx?.accountId ?? defaultAccountId ?? accounts[0]?.id ?? 1);
@@ -54,6 +55,15 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
     } else {
       onAdd(txData);
     }
+    onClose();
+  };
+
+  const handleAddFixed = () => {
+    const num = parseInt(amount.replace(/,/g, ''), 10);
+    if (!num || num <= 0) return;
+    const name = note.trim() || category;
+    if (!name) return;
+    onAddFixed?.({ name, amount: num, accountId });
     onClose();
   };
 
@@ -168,6 +178,17 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
           >
             {isEdit ? '수정 완료' : '추가'}
           </button>
+
+          {!isEdit && type === 'expense' && onAddFixed && (
+            <button
+              type="button"
+              onClick={handleAddFixed}
+              className="w-full bg-[#F2F2F7] text-[#FF9500] py-3.5 rounded-2xl text-[17px] font-semibold transition-all duration-200 active:opacity-80"
+            >
+              고정추가 (표시만)
+            </button>
+          )}
+
           {isEdit && onDelete && editTx && (
             <button
               type="button"

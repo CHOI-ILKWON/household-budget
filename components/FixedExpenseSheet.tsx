@@ -1,16 +1,15 @@
 'use client';
 import { useState } from 'react';
-import { FixedExpense, Account, Transaction } from '@/lib/types';
+import { FixedExpense, Account } from '@/lib/types';
 
 interface Props {
   fixedExpenses: FixedExpense[];
   accounts: Account[];
   onUpdate: (expenses: FixedExpense[]) => void;
-  onApply: (txs: Omit<Transaction, 'id'>[]) => void;
   onClose: () => void;
 }
 
-export default function FixedExpenseSheet({ fixedExpenses, accounts, onUpdate, onApply, onClose }: Props) {
+export default function FixedExpenseSheet({ fixedExpenses, accounts, onUpdate, onClose }: Props) {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [accountId, setAccountId] = useState(accounts[0]?.id ?? 1);
@@ -54,22 +53,6 @@ export default function FixedExpenseSheet({ fixedExpenses, accounts, onUpdate, o
     setEditingId(null);
   };
 
-  const handleApply = () => {
-    if (fixedExpenses.length === 0) return;
-    const d = new Date();
-    const today = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-    const txs: Omit<Transaction, 'id'>[] = fixedExpenses.map(f => ({
-      date: today,
-      type: 'expense' as const,
-      accountId: f.accountId,
-      category: '고정지출',
-      amount: f.amount,
-      note: f.name,
-    }));
-    onApply(txs);
-    onClose();
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end items-center" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
@@ -81,6 +64,7 @@ export default function FixedExpenseSheet({ fixedExpenses, accounts, onUpdate, o
         <div className="p-6 pb-3">
           <div className="w-10 h-1 bg-[#E5E5EA] rounded-full mx-auto mb-5" />
           <h2 className="text-[17px] font-semibold text-[#1C1C1E]">고정지출 관리</h2>
+          <p className="text-[12px] text-[#8E8E93] mt-1">표시 전용 — 잔액에 영향을 주지 않습니다</p>
         </div>
 
         {/* 목록 */}
@@ -177,15 +161,6 @@ export default function FixedExpenseSheet({ fixedExpenses, accounts, onUpdate, o
             onClick={handleAdd}
             className="w-full bg-[#007AFF] text-white py-3 rounded-2xl text-[15px] font-semibold transition-all active:opacity-80"
           >추가</button>
-
-          {fixedExpenses.length > 0 && (
-            <button
-              onClick={handleApply}
-              className="w-full bg-[#FF3B30] text-white py-3.5 rounded-2xl text-[17px] font-semibold transition-all active:opacity-80"
-            >
-              오늘 날짜로 일반지출에 적용 ({fixedExpenses.reduce((s, f) => s + f.amount, 0).toLocaleString()}원)
-            </button>
-          )}
         </div>
       </div>
     </div>

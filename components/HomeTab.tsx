@@ -132,21 +132,6 @@ export default function HomeTab({ state, onChange }: Props) {
     onChange({ ...state, transactions: state.transactions.filter(t => t.id !== txId), accounts: newAccounts });
   };
 
-  const handleApplyFixed = (txs: Omit<Transaction, 'id'>[]) => {
-    let newState = { ...state };
-    txs.forEach(tx => {
-      const id = `tx_${Date.now()}_${Math.random()}`;
-      newState = {
-        ...newState,
-        transactions: [...newState.transactions, { ...tx, id }],
-        accounts: newState.accounts.map(a =>
-          a.id === tx.accountId ? { ...a, balance: a.balance - tx.amount } : a
-        ),
-      };
-    });
-    onChange(newState);
-  };
-
   const txColor = (type: Transaction['type']) =>
     type === 'income' ? 'text-[#34C759]' : type === 'expense' ? 'text-[#FF3B30]' : 'text-[#007AFF]';
   const txDotBg = (type: Transaction['type']) =>
@@ -275,7 +260,7 @@ export default function HomeTab({ state, onChange }: Props) {
 
       {/* 하단 2컬럼 */}
       <div className="grid grid-cols-2 gap-2">
-        {/* 고정지출 */}
+        {/* 고정지출 (표시 전용) */}
         <div className="bg-white rounded-2xl border border-[#E5E5EA] overflow-hidden flex flex-col">
           <div className="px-3 pt-3 pb-2 flex items-center justify-between">
             <SL>고정지출</SL>
@@ -387,6 +372,13 @@ export default function HomeTab({ state, onChange }: Props) {
           accounts={state.accounts}
           categories={state.categories}
           onAdd={tx => { addTx(tx); setShowAdd(false); }}
+          onAddFixed={item => {
+            onChange({
+              ...state,
+              fixedExpenses: [...state.fixedExpenses, { ...item, id: `fe_${Date.now()}` }],
+            });
+            setShowAdd(false);
+          }}
           onClose={() => setShowAdd(false)}
         />
       )}
@@ -427,7 +419,6 @@ export default function HomeTab({ state, onChange }: Props) {
           fixedExpenses={state.fixedExpenses}
           accounts={state.accounts}
           onUpdate={expenses => onChange({ ...state, fixedExpenses: expenses })}
-          onApply={handleApplyFixed}
           onClose={() => setShowFixed(false)}
         />
       )}

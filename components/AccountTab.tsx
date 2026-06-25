@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { AppState, Transaction } from '@/lib/types';
-import { getBillingDate, isInBillingMonth } from '@/lib/store';
+import { getBillingDate, getBillingRange, isInBillingMonth } from '@/lib/store';
 import AddTransactionModal from './AddTransactionModal';
 
 interface Props {
@@ -21,9 +21,14 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
   const [editTx, setEditTx] = useState<Transaction | null>(null);
   const [editingName, setEditingName] = useState(false);
   const [newName, setNewName] = useState('');
-  const [viewDate] = useState(() => getBillingDate());
+  const [viewDate, setViewDate] = useState(() => getBillingDate());
+
   const bYear = viewDate.getFullYear();
   const bMonth = viewDate.getMonth() + 1;
+  const { start: rangeStart, end: rangeEnd } = getBillingRange(bYear, bMonth);
+
+  const prevMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() - 1); setViewDate(d); };
+  const nextMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() + 1); setViewDate(d); };
 
   const account = state.accounts.find(a => a.id === accountId);
   if (!account) return null;
@@ -200,6 +205,24 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
         ))}
       </div>
 
+      {/* 월 네비게이션 */}
+      <div className="flex items-center justify-center gap-2">
+        <button onClick={prevMonth} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-[#F2F2F7] transition-all text-[#8E8E93]">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+            <path d="M7 1L1 7L7 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        <div className="text-center min-w-[160px]">
+          <div className="text-[17px] font-semibold text-[#1C1C1E]">{bYear}년 {bMonth}월</div>
+          <div className="text-[10px] text-[#C7C7CC] mt-0.5">{rangeStart.slice(5)} ~ {rangeEnd.slice(5)}</div>
+        </div>
+        <button onClick={nextMonth} className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl hover:bg-[#F2F2F7] transition-all text-[#8E8E93]">
+          <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
+            <path d="M1 1L7 7L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+      </div>
+
       {/* 이번달 요약 */}
       <div className="grid grid-cols-3 gap-1.5">
         {[
@@ -214,11 +237,11 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
         ))}
       </div>
 
-      {/* 고정지출 */}
+      {/* 고정지출 (표시 전용) */}
       {fixedExpenses.length > 0 && (
         <div className="bg-white rounded-2xl border border-[#E5E5EA] overflow-hidden">
           <div className="px-4 pt-4 pb-2">
-            <SL>고정지출</SL>
+            <SL>고정지출 (표시 전용)</SL>
           </div>
           {fixedExpenses.map(f => (
             <div key={f.id} className="flex justify-between items-center px-4 py-2.5 border-b border-[#F2F2F7] last:border-0">
@@ -273,6 +296,12 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
           defaultAccountId={accountId}
           defaultType={txType}
           onAdd={addTx}
+          onAddFixed={item => {
+            onChange({
+              ...state,
+              fixedExpenses: [...state.fixedExpenses, { ...item, id: `fe_${Date.now()}` }],
+            });
+          }}
           onClose={() => setShowAdd(false)}
         />
       )}
