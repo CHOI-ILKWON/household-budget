@@ -56,6 +56,17 @@ export default function HomeTab({ state, onChange }: Props) {
   const mSave = Math.max(0, mRem);
   const ySave = Math.max(0, yRem);
   const fixedTotal = state.fixedExpenses.reduce((s, f) => s + f.amount, 0);
+
+  // 일권용돈 일일 예산 계산
+  const dailyAccount = state.accounts.find(a => a.name.includes('일권용돈'));
+  const todayD = new Date();
+  const todayStr = `${todayD.getFullYear()}-${String(todayD.getMonth()+1).padStart(2,'0')}-${String(todayD.getDate()).padStart(2,'0')}`;
+  const { end: curRangeEnd } = (() => { const bd = getBillingDate(); return getBillingRange(bd.getFullYear(), bd.getMonth()+1); })();
+  const msPerDay = 1000*60*60*24;
+  const remainDays = todayStr <= curRangeEnd
+    ? Math.round((new Date(curRangeEnd).getTime() - new Date(todayStr).getTime()) / msPerDay) + 1
+    : 0;
+  const dailyBudget = dailyAccount && remainDays > 0 ? Math.floor(dailyAccount.balance / remainDays) : 0;
   const totalBal = state.accounts.reduce((s, a) => s + a.balance, 0);
 
   const totalUsed = mExp + mSave;
@@ -227,15 +238,19 @@ export default function HomeTab({ state, onChange }: Props) {
             {state.monthlyGoal > 0 ? Math.min(100, Math.round((mSave / state.monthlyGoal) * 100)) : 0}%
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-[#E5E5EA] p-4 cursor-pointer active:opacity-70 transition-opacity" onClick={() => setShowGoal(true)}>
-          <div className="text-[11px] text-[#8E8E93] uppercase tracking-widest font-semibold mb-2">연간 목표</div>
-          <div className="text-[13px] font-semibold text-[#1C1C1E] mb-0.5">
-            {fmt(ySave)}<span className="text-[10px] text-[#8E8E93] font-normal"> / {fmt(state.annualGoal)}</span>
-          </div>
-          <Bar value={ySave} max={state.annualGoal} color="bg-[#007AFF]" />
-          <div className="text-[10px] text-[#8E8E93] mt-1 text-right">
-            {state.annualGoal > 0 ? Math.min(100, Math.round((ySave / state.annualGoal) * 100)) : 0}%
-          </div>
+        <div className="bg-white rounded-2xl border border-[#E5E5EA] p-4">
+          <div className="text-[11px] text-[#8E8E93] uppercase tracking-widest font-semibold mb-2">일일 용돈</div>
+          {dailyAccount ? (
+            <>
+              <div className={`text-[18px] font-bold tracking-tight mb-0.5 ${dailyBudget < 0 ? 'text-[#FF3B30]' : 'text-[#007AFF]'}`}>
+                {dailyBudget < 0 ? '-' : ''}{Math.abs(dailyBudget).toLocaleString()}원
+              </div>
+              <div className="text-[10px] text-[#8E8E93]">잔액 {dailyAccount.balance.toLocaleString()}원</div>
+              <div className="text-[10px] text-[#8E8E93] mt-1">잔여 {remainDays}일 · {curRangeEnd.slice(5)}까지</div>
+            </>
+          ) : (
+            <div className="text-[11px] text-[#C7C7CC] mt-2">&#34;일권용돈&#34; 계좌를<br/>추가해주세요</div>
+          )}
         </div>
       </div>
 
