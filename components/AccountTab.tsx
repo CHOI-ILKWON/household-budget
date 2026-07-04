@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { AppState, Transaction } from '@/lib/types';
 import { getBillingDate, getBillingRange, isInBillingMonth } from '@/lib/store';
 import AddTransactionModal from './AddTransactionModal';
-import MonthlyCategoryBreakdown from './MonthlyCategoryBreakdown';
+import MonthlyStatsCarousel from './MonthlyStatsCarousel';
 
 interface Props {
   accountId: number;
@@ -39,7 +39,6 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
     if (t.type === 'transfer') return t.toAccountId === accountId;
     return t.accountId === accountId;
   });
-  const sorted = [...allTxs].sort((a, b) => b.date.localeCompare(a.date));
 
   const mInc = allTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
   const mExp = allTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
@@ -133,28 +132,6 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
       fixedExpenses: state.fixedExpenses.filter(f => f.accountId !== accountId),
     });
     onAccountDeleted?.();
-  };
-
-  const getTxDisplay = (t: Transaction) => {
-    if (t.type === 'income') return {
-      label: t.note || t.category,
-      sub: t.category,
-      amount: `+${t.amount.toLocaleString()}`,
-      color: 'text-[#34C759]',
-    };
-    if (t.type === 'expense') return {
-      label: t.note || t.category,
-      sub: t.category,
-      amount: `-${t.amount.toLocaleString()}`,
-      color: 'text-[#FF3B30]',
-    };
-    const fromAcc = state.accounts.find(a => a.id === t.accountId);
-    return {
-      label: t.note || '이체입금',
-      sub: `← ${fromAcc?.name ?? ''}`,
-      amount: `+${t.amount.toLocaleString()}`,
-      color: 'text-[#007AFF]',
-    };
   };
 
   const actionBtns: { label: string; icon: string; type: Transaction['type'] }[] = [
@@ -270,42 +247,13 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
         </div>
       )}
 
-      {/* 거래 내역 */}
-      <div className="bg-white rounded-2xl border border-[#E5E5EA] overflow-hidden">
-        <div className="px-4 pt-4 pb-2">
-          <SL>{bMonth}월 거래내역</SL>
-        </div>
-        {sorted.length === 0 ? (
-          <div className="text-[12px] text-[#C7C7CC] text-center py-10">내역 없음</div>
-        ) : sorted.map(t => {
-          const d = getTxDisplay(t);
-          return (
-            <div
-              key={t.id}
-              className="flex justify-between items-center px-4 py-3 border-b border-[#F2F2F7] last:border-0 group cursor-pointer active:bg-[#F2F2F7]"
-              onClick={() => setEditTx(t)}
-            >
-              <div>
-                <div className="text-[13px] text-[#1C1C1E]">{d.label}</div>
-                <div className="text-[11px] text-[#8E8E93]">{t.date.slice(5)} · {d.sub}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`text-[13px] font-semibold ${d.color}`}>{d.amount}</span>
-                <button
-                  onClick={e => { e.stopPropagation(); deleteTx(t.id); }}
-                  className="text-[10px] text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity"
-                >✕</button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* 월별 지출통계 (구분별) */}
-      <MonthlyCategoryBreakdown
+      {/* 월별 지출통계 (구분별) — 슬라이드/화살표로 월 전환, 세부 내역 펼치기 + 수정/삭제 */}
+      <MonthlyStatsCarousel
         transactions={accountYearExpenseTxs}
         year={statsYear}
         title={`${statsYear}년 월별 지출통계 (구분별)`}
+        onEdit={setEditTx}
+        onDelete={deleteTx}
       />
 
       {showAdd && (

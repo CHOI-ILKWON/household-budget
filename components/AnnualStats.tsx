@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { AppState, Transaction } from '@/lib/types';
-import MonthlyCategoryBreakdown from './MonthlyCategoryBreakdown';
+import MonthlyStatsCarousel from './MonthlyStatsCarousel';
 
 interface Props { state: AppState }
 
@@ -105,7 +105,25 @@ export default function AnnualStats({ state }: Props) {
         ))}
       </div>
 
-      {/* 구분별 */}
+      {/* 월별 통계 (구분별) — 슬라이드/화살표로 월 전환, 세부 내역 펼치기 */}
+      <MonthlyStatsCarousel
+        transactions={yearTxs.filter(t => t.type === tab)}
+        year={year}
+        title={`월별 ${tab === 'expense' ? '지출' : '수입'} 통계 (구분별)`}
+        accounts={state.accounts}
+      />
+
+      {/* 월별 차트 */}
+      <div className="bg-white rounded-2xl border border-[#E5E5EA] p-4">
+        <div className="text-[11px] text-[#8E8E93] uppercase tracking-widest font-semibold mb-4">
+          월별 {tab === 'expense' ? '지출' : '수입'}
+        </div>
+        <div style={{ height: 160 }}>
+          <canvas ref={chartRef} />
+        </div>
+      </div>
+
+      {/* 연간 구분별 */}
       <div className="bg-white rounded-2xl border border-[#E5E5EA] p-4">
         <div className="text-[11px] text-[#8E8E93] uppercase tracking-widest font-semibold mb-4">
           {year}년 {tab === 'expense' ? '지출' : '수입'} — 구분별
@@ -170,23 +188,6 @@ export default function AnnualStats({ state }: Props) {
           </div>
         )}
       </div>
-
-      {/* 월별 차트 */}
-      <div className="bg-white rounded-2xl border border-[#E5E5EA] p-4">
-        <div className="text-[11px] text-[#8E8E93] uppercase tracking-widest font-semibold mb-4">
-          월별 {tab === 'expense' ? '지출' : '수입'}
-        </div>
-        <div style={{ height: 160 }}>
-          <canvas ref={chartRef} />
-        </div>
-      </div>
-
-      {/* 월별 지출/수입 통계 (구분별) */}
-      <MonthlyCategoryBreakdown
-        transactions={yearTxs.filter(t => t.type === tab)}
-        year={year}
-        title={`월별 ${tab === 'expense' ? '지출' : '수입'} 통계 (구분별)`}
-      />
     </div>
   );
 }
