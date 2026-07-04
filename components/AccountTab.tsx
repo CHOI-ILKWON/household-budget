@@ -46,10 +46,10 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
 
   const fixedExpenses = state.fixedExpenses.filter(f => f.accountId === accountId);
 
-  // 계좌별 월별 지출통계 (구분별) — 달력 연도 기준
+  // 계좌별 월별 지출통계 (구분별) — 25일 기산 청구월 기준, 연도 경계(12월→1월)도 자체 처리
   const statsYear = new Date().getFullYear();
-  const accountYearExpenseTxs = state.transactions.filter(
-    t => t.type === 'expense' && t.accountId === accountId && t.date.startsWith(String(statsYear))
+  const accountExpenseTxs = state.transactions.filter(
+    t => t.type === 'expense' && t.accountId === accountId
   );
 
   const addTx = (tx: Omit<Transaction, 'id'>) => {
@@ -249,7 +249,7 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
 
       {/* 월별 지출통계 (구분별) — 슬라이드/화살표로 월 전환, 세부 내역 펼치기 + 수정/삭제 */}
       <MonthlyStatsCarousel
-        transactions={accountYearExpenseTxs}
+        transactions={accountExpenseTxs}
         year={statsYear}
         title={`${statsYear}년 월별 지출통계 (구분별)`}
         onEdit={setEditTx}

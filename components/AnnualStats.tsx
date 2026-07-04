@@ -107,7 +107,7 @@ export default function AnnualStats({ state }: Props) {
 
       {/* 월별 통계 (구분별) — 슬라이드/화살표로 월 전환, 세부 내역 펼치기 */}
       <MonthlyStatsCarousel
-        transactions={yearTxs.filter(t => t.type === tab)}
+        transactions={state.transactions.filter(t => t.type === tab)}
         year={year}
         title={`월별 ${tab === 'expense' ? '지출' : '수입'} 통계 (구분별)`}
         accounts={state.accounts}

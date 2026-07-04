@@ -1,6 +1,7 @@
 'use client';
 import { useRef, useState } from 'react';
 import { Account, Transaction } from '@/lib/types';
+import { getBillingMonth, getBillingRange, isInBillingMonth } from '@/lib/store';
 
 const DOT_COLORS = [
   '#FF3B30', '#FF9500', '#FFCC00', '#34C759',
@@ -17,7 +18,10 @@ interface Props {
 }
 
 export default function MonthlyStatsCarousel({ transactions, year, title, accounts, onEdit, onDelete }: Props) {
-  const [month, setMonth] = useState(() => new Date().getMonth() + 1);
+  const [month, setMonth] = useState(() => {
+    const bm = getBillingMonth(new Date());
+    return bm.year === year ? bm.month : 12;
+  });
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -33,8 +37,8 @@ export default function MonthlyStatsCarousel({ transactions, year, title, accoun
     touchStartX.current = null;
   };
 
-  const mk = `${year}-${String(month).padStart(2, '0')}`;
-  const mTxs = transactions.filter(t => t.date.startsWith(mk) && t.category);
+  const { start: rangeStart, end: rangeEnd } = getBillingRange(year, month);
+  const mTxs = transactions.filter(t => isInBillingMonth(t.date, year, month) && t.category);
   const byCat = mTxs.reduce((acc, t) => {
     acc[t.category] = (acc[t.category] || 0) + t.amount;
     return acc;
@@ -61,7 +65,10 @@ export default function MonthlyStatsCarousel({ transactions, year, title, accoun
             <path d="M7 1L1 7L7 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </button>
-        <div className="text-[15px] font-semibold text-[#1C1C1E] min-w-[52px] text-center">{month}월</div>
+        <div className="text-center min-w-[80px]">
+          <div className="text-[15px] font-semibold text-[#1C1C1E]">{month}월</div>
+          <div className="text-[9px] text-[#C7C7CC] mt-0.5">{rangeStart.slice(5)} ~ {rangeEnd.slice(5)}</div>
+        </div>
         <button
           onClick={nextMonth}
           disabled={month === 12}
