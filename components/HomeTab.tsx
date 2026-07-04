@@ -5,7 +5,6 @@ import { getBillingDate, getBillingRange, isInBillingMonth } from '@/lib/store';
 import AddTransactionModal from './AddTransactionModal';
 import CategoryModal from './CategoryModal';
 import GoalModal from './GoalModal';
-import FixedExpenseSheet from './FixedExpenseSheet';
 
 interface Props {
   state: AppState;
@@ -36,7 +35,6 @@ export default function HomeTab({ state, onChange }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [showCat, setShowCat] = useState(false);
   const [showGoal, setShowGoal] = useState(false);
-  const [showFixed, setShowFixed] = useState(false);
   const [catFilter, setCatFilter] = useState<string | null>(null);
   const [editTx, setEditTx] = useState<Transaction | null>(null);
 
@@ -55,7 +53,6 @@ export default function HomeTab({ state, onChange }: Props) {
   const yRem = yInc - yExp;
   const mSave = Math.max(0, mRem);
   const ySave = Math.max(0, yRem);
-  const fixedTotal = state.fixedExpenses.reduce((s, f) => s + f.amount, 0);
 
   // 일권용돈 일일 예산 계산
   const dailyAccount = state.accounts.find(a => a.name.includes('일권용돈'));
@@ -141,6 +138,11 @@ export default function HomeTab({ state, onChange }: Props) {
       return a;
     });
     onChange({ ...state, transactions: state.transactions.filter(t => t.id !== txId), accounts: newAccounts });
+  };
+
+  const addCategory = (name: string) => {
+    if (state.categories.includes(name)) return;
+    onChange({ ...state, categories: [...state.categories, name] });
   };
 
   const txColor = (type: Transaction['type']) =>
@@ -273,49 +275,8 @@ export default function HomeTab({ state, onChange }: Props) {
         </div>
       </div>
 
-      {/* 하단 2컬럼 */}
-      <div className="grid grid-cols-2 gap-2">
-        {/* 고정지출 (표시 전용) */}
-        <div className="bg-white rounded-2xl border border-[#E5E5EA] overflow-hidden flex flex-col">
-          <div className="px-3 pt-3 pb-2 flex items-center justify-between">
-            <SL>고정지출</SL>
-            <button
-              onClick={() => setShowFixed(true)}
-              className="text-[11px] text-[#007AFF] -mt-2 font-medium"
-            >편집</button>
-          </div>
-          {state.fixedExpenses.length === 0 ? (
-            <div className="px-3 pb-3">
-              <button
-                onClick={() => setShowFixed(true)}
-                className="w-full text-[11px] text-[#8E8E93] py-4 border border-dashed border-[#E5E5EA] rounded-xl"
-              >+ 고정지출 추가</button>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1">
-                {state.fixedExpenses.map(f => {
-                  const acc = state.accounts.find(a => a.id === f.accountId);
-                  return (
-                    <div key={f.id} className="flex justify-between items-center px-3 py-2 border-b border-[#F2F2F7] last:border-0">
-                      <div className="min-w-0">
-                        <div className="text-[12px] text-[#1C1C1E] truncate">{f.name}</div>
-                        {acc && <div className="text-[10px] text-[#C7C7CC]">{acc.name}</div>}
-                      </div>
-                      <span className="text-[12px] text-[#FF3B30] shrink-0 ml-1">{f.amount.toLocaleString()}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="flex justify-between items-center px-3 py-2.5 bg-[#F2F2F7]">
-                <span className="text-[11px] font-semibold text-[#1C1C1E]">합계</span>
-                <span className="text-[11px] font-semibold text-[#FF3B30]">{fixedTotal.toLocaleString()}</span>
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* 전체 내역 */}
+      {/* 전체 내역 */}
+      <div>
         <div className="bg-white rounded-2xl border border-[#E5E5EA] flex flex-col overflow-hidden">
           <div className="flex justify-between items-center px-3 pt-3 pb-2">
             <span className="text-[12px] font-semibold text-[#1C1C1E]">전체 내역</span>
@@ -394,6 +355,7 @@ export default function HomeTab({ state, onChange }: Props) {
             });
             setShowAdd(false);
           }}
+          onAddCategory={addCategory}
           onClose={() => setShowAdd(false)}
         />
       )}
@@ -405,6 +367,7 @@ export default function HomeTab({ state, onChange }: Props) {
           onAdd={addTx}
           onEdit={handleEditTx}
           onDelete={id => { deleteTx(id); setEditTx(null); }}
+          onAddCategory={addCategory}
           onClose={() => setEditTx(null)}
         />
       )}
@@ -427,14 +390,6 @@ export default function HomeTab({ state, onChange }: Props) {
           monthlyGoal={state.monthlyGoal} annualGoal={state.annualGoal}
           onSave={(m, a) => onChange({ ...state, monthlyGoal: m, annualGoal: a })}
           onClose={() => setShowGoal(false)}
-        />
-      )}
-      {showFixed && (
-        <FixedExpenseSheet
-          fixedExpenses={state.fixedExpenses}
-          accounts={state.accounts}
-          onUpdate={expenses => onChange({ ...state, fixedExpenses: expenses })}
-          onClose={() => setShowFixed(false)}
         />
       )}
     </div>

@@ -12,6 +12,7 @@ interface Props {
   onEdit?: (tx: Transaction) => void;
   onDelete?: (id: string) => void;
   onAddFixed?: (item: Omit<FixedExpense, 'id'>) => void;
+  onAddCategory: (name: string) => void;
   onClose: () => void;
 }
 
@@ -21,7 +22,7 @@ const TABS: { label: string; value: TransactionType; color: string }[] = [
   { label: '이체', value: 'transfer', color: 'text-[#007AFF]' },
 ];
 
-export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, editTx, onAdd, onEdit, onDelete, onAddFixed, onClose }: Props) {
+export default function AddTransactionModal({ accounts, categories, defaultAccountId, defaultType, editTx, onAdd, onEdit, onDelete, onAddFixed, onAddCategory, onClose }: Props) {
   const isEdit = !!editTx;
   const [type, setType] = useState<TransactionType>(editTx?.type ?? defaultType ?? 'expense');
   const [accountId, setAccountId] = useState(editTx?.accountId ?? defaultAccountId ?? accounts[0]?.id ?? 1);
@@ -36,6 +37,17 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   });
+  const [addingCategory, setAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
+  const handleAddCategory = () => {
+    const trimmed = newCategoryName.trim();
+    if (!trimmed) return;
+    onAddCategory(trimmed);
+    setCategory(trimmed);
+    setNewCategoryName('');
+    setAddingCategory(false);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,11 +153,29 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
               <label className="text-[11px] text-[#8E8E93] uppercase tracking-wide font-medium block mb-1.5">구분</label>
               <select
                 value={category}
-                onChange={e => setCategory(e.target.value)}
+                onChange={e => {
+                  if (e.target.value === '__new__') setAddingCategory(true);
+                  else setCategory(e.target.value);
+                }}
                 className="bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full text-[#1C1C1E] appearance-none"
               >
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                <option value="__new__">+ 새 구분 추가</option>
               </select>
+              {addingCategory && (
+                <div className="flex gap-2 mt-2">
+                  <input
+                    autoFocus
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddCategory(); } }}
+                    placeholder="새 구분 이름"
+                    className="flex-1 bg-[#F2F2F7] rounded-xl px-4 py-2.5 text-[14px] border-none outline-none text-[#1C1C1E]"
+                  />
+                  <button type="button" onClick={handleAddCategory} className="bg-[#007AFF] text-white rounded-xl px-4 py-2.5 text-[14px] font-semibold transition-all active:opacity-80">추가</button>
+                  <button type="button" onClick={() => { setAddingCategory(false); setNewCategoryName(''); }} className="text-[13px] text-[#8E8E93] px-1">취소</button>
+                </div>
+              )}
             </div>
           )}
 

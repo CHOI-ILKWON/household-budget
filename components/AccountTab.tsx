@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AppState, Transaction } from '@/lib/types';
 import { getBillingDate, getBillingRange, isInBillingMonth } from '@/lib/store';
 import AddTransactionModal from './AddTransactionModal';
+import MonthlyCategoryBreakdown from './MonthlyCategoryBreakdown';
 
 interface Props {
   accountId: number;
@@ -45,6 +46,12 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
   const mTrIn = allTxs.filter(t => t.type === 'transfer').reduce((s, t) => s + t.amount, 0);
 
   const fixedExpenses = state.fixedExpenses.filter(f => f.accountId === accountId);
+
+  // 계좌별 월별 지출통계 (구분별) — 달력 연도 기준
+  const statsYear = new Date().getFullYear();
+  const accountYearExpenseTxs = state.transactions.filter(
+    t => t.type === 'expense' && t.accountId === accountId && t.date.startsWith(String(statsYear))
+  );
 
   const addTx = (tx: Omit<Transaction, 'id'>) => {
     const id = `tx_${Date.now()}_${Math.random()}`;
@@ -103,6 +110,11 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
       return a;
     });
     onChange({ ...state, transactions: state.transactions.filter(t => t.id !== txId), accounts: newAccounts });
+  };
+
+  const addCategory = (name: string) => {
+    if (state.categories.includes(name)) return;
+    onChange({ ...state, categories: [...state.categories, name] });
   };
 
   const handleRename = () => {
@@ -289,6 +301,13 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
         })}
       </div>
 
+      {/* 월별 지출통계 (구분별) */}
+      <MonthlyCategoryBreakdown
+        transactions={accountYearExpenseTxs}
+        year={statsYear}
+        title={`${statsYear}년 월별 지출통계 (구분별)`}
+      />
+
       {showAdd && (
         <AddTransactionModal
           accounts={state.accounts}
@@ -302,6 +321,7 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
               fixedExpenses: [...state.fixedExpenses, { ...item, id: `fe_${Date.now()}` }],
             });
           }}
+          onAddCategory={addCategory}
           onClose={() => setShowAdd(false)}
         />
       )}
@@ -314,6 +334,7 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
           onAdd={addTx}
           onEdit={handleEditTx}
           onDelete={id => { deleteTx(id); setEditTx(null); }}
+          onAddCategory={addCategory}
           onClose={() => setEditTx(null)}
         />
       )}
