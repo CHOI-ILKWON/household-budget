@@ -15,18 +15,36 @@ interface Props {
   accounts?: Account[]; // 있으면 상세 내역에 계좌명을 함께 표시
   onEdit?: (tx: Transaction) => void;
   onDelete?: (id: string) => void;
+  // 아래 두 개가 함께 전달되면, 이 컴포넌트는 자체 월 상태 없이 부모가 넘긴 month를 그대로 쓰고
+  // 화살표/스와이프는 부모의 네비게이션 함수를 호출한다 (페이지 안의 다른 "이번달" 표시와 동기화하기 위함).
+  month?: number;
+  onPrevMonth?: () => void;
+  onNextMonth?: () => void;
 }
 
-export default function MonthlyStatsCarousel({ transactions, year, title, accounts, onEdit, onDelete }: Props) {
-  const [month, setMonth] = useState(() => {
+export default function MonthlyStatsCarousel({
+  transactions, year, title, accounts, onEdit, onDelete,
+  month: controlledMonth, onPrevMonth, onNextMonth,
+}: Props) {
+  const isControlled = controlledMonth !== undefined;
+  const [internalMonth, setInternalMonth] = useState(() => {
     const bm = getBillingMonth(new Date());
     return bm.year === year ? bm.month : 12;
   });
+  const month = isControlled ? controlledMonth! : internalMonth;
   const [expandedCat, setExpandedCat] = useState<string | null>(null);
   const touchStartX = useRef<number | null>(null);
 
-  const prevMonth = () => { setExpandedCat(null); setMonth(m => Math.max(1, m - 1)); };
-  const nextMonth = () => { setExpandedCat(null); setMonth(m => Math.min(12, m + 1)); };
+  const prevMonth = () => {
+    setExpandedCat(null);
+    if (isControlled) onPrevMonth?.();
+    else setInternalMonth(m => Math.max(1, m - 1));
+  };
+  const nextMonth = () => {
+    setExpandedCat(null);
+    if (isControlled) onNextMonth?.();
+    else setInternalMonth(m => Math.min(12, m + 1));
+  };
 
   const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.touches[0].clientX; };
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -58,7 +76,7 @@ export default function MonthlyStatsCarousel({ transactions, year, title, accoun
       >
         <button
           onClick={prevMonth}
-          disabled={month === 1}
+          disabled={!isControlled && month === 1}
           className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded-xl hover:bg-[#F2F2F7] transition-all text-[#8E8E93] disabled:opacity-20"
         >
           <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
@@ -71,7 +89,7 @@ export default function MonthlyStatsCarousel({ transactions, year, title, accoun
         </div>
         <button
           onClick={nextMonth}
-          disabled={month === 12}
+          disabled={!isControlled && month === 12}
           className="min-w-[32px] min-h-[32px] flex items-center justify-center rounded-xl hover:bg-[#F2F2F7] transition-all text-[#8E8E93] disabled:opacity-20"
         >
           <svg width="8" height="14" viewBox="0 0 8 14" fill="none">
