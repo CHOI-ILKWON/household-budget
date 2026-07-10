@@ -20,6 +20,9 @@ export interface Transaction {
   // 이미 만들어진 거래의 잔액 반영 여부는 그대로 유지되어야 하므로(수정/삭제 시 되돌릴 때 필요) 매번
   // 다시 계산하지 않고 이 값을 그대로 사용한다.
   excludedFromBalance?: boolean;
+  // 보험료·대출원리금처럼 정기적으로 나가는 고정비인지 여부. 구분(카테고리)과 무관하게 거래
+  // 하나하나에 붙는 속성이다 (같은 구분 안에도 고정비/비고정비가 섞일 수 있어서).
+  isFixed?: boolean;
 }
 
 export interface FixedExpense {

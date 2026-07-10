@@ -39,6 +39,7 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
   });
   const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [isFixed, setIsFixed] = useState(editTx?.isFixed ?? false);
 
   const handleAddCategory = () => {
     const trimmed = newCategoryName.trim();
@@ -61,6 +62,7 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
       category: type === 'transfer' ? '' : category,
       amount: num,
       note,
+      isFixed: type !== 'income' ? isFixed : false,
     };
     if (isEdit && editTx && onEdit) {
       onEdit({ ...editTx, ...txData });
@@ -201,6 +203,19 @@ export default function AddTransactionModal({ accounts, categories, defaultAccou
               className="bg-[#F2F2F7] rounded-xl px-4 py-3 text-[15px] border-none outline-none w-full text-[#1C1C1E]"
             />
           </div>
+
+          {type !== 'income' && (
+            <button
+              type="button"
+              onClick={() => setIsFixed(v => !v)}
+              className={`w-full flex items-center justify-between rounded-xl px-4 py-3 text-[14px] font-medium transition-all ${
+                isFixed ? 'bg-[#FF9500] text-white' : 'bg-[#F2F2F7] text-[#8E8E93]'
+              }`}
+            >
+              <span>고정비 (보험료·대출원리금처럼 정기적으로 나가는 돈)</span>
+              <span className="text-[16px] leading-none">{isFixed ? '✓' : ''}</span>
+            </button>
+          )}
 
           <button
             type="submit"

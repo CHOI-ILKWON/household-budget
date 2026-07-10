@@ -85,6 +85,10 @@ export default function HomeTab({ state, onChange }: Props) {
   const sorted = [...displayTxs].sort((a, b) => b.date.localeCompare(a.date));
   const filteredExpTotal = sumExpense(filtered, state.nonExpenseCategories);
 
+  // 보험료·대출원리금처럼 정기적으로 나가는 고정비 (구분과 무관하게 거래별로 체크된 것)
+  const fixedTxs = [...mTxs.filter(t => t.isFixed)].sort((a, b) => b.date.localeCompare(a.date));
+  const fixedTotal = fixedTxs.reduce((s, t) => s + t.amount, 0);
+
   const prevMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() - 1); setViewDate(d); };
   const nextMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() + 1); setViewDate(d); };
   const { start: rangeStart, end: rangeEnd } = getBillingRange(bYear, bMonth);
@@ -285,8 +289,40 @@ export default function HomeTab({ state, onChange }: Props) {
         </div>
       </div>
 
-      {/* 전체 내역 */}
-      <div>
+      {/* 하단 2컬럼: 고정비 + 전체 내역 */}
+      <div className="grid grid-cols-2 gap-2">
+        {/* 고정비 */}
+        <div className="bg-white rounded-2xl border border-[#E5E5EA] flex flex-col overflow-hidden">
+          <div className="px-3 pt-3 pb-2">
+            <span className="text-[12px] font-semibold text-[#1C1C1E]">고정비</span>
+          </div>
+          <div className="overflow-y-auto max-h-64 px-3 flex-1">
+            {fixedTxs.length === 0 ? (
+              <div className="text-[10px] text-[#C7C7CC] text-center py-8">등록된 고정비 없음</div>
+            ) : fixedTxs.map(t => {
+              const acc = state.accounts.find(a => a.id === t.accountId);
+              return (
+                <div
+                  key={t.id}
+                  className="flex justify-between items-center py-1.5 border-b border-[#F2F2F7] last:border-0 cursor-pointer active:bg-[#F2F2F7] rounded-lg"
+                  onClick={() => setEditTx(t)}
+                >
+                  <div className="min-w-0">
+                    <div className="text-[11px] text-[#1C1C1E] truncate">{t.note || t.category}</div>
+                    <div className="text-[10px] text-[#8E8E93] truncate">{acc?.name}</div>
+                  </div>
+                  <span className="text-[11px] font-semibold text-[#FF9500] shrink-0 ml-1">{t.amount.toLocaleString()}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-between items-center px-3 py-2.5 bg-[#FFF6EC] mt-auto">
+            <span className="text-[11px] font-semibold text-[#FF9500]">고정비 합계</span>
+            <span className="text-[11px] font-semibold text-[#FF9500]">{fixedTotal.toLocaleString()}</span>
+          </div>
+        </div>
+
+        {/* 전체 내역 */}
         <div className="bg-white rounded-2xl border border-[#E5E5EA] flex flex-col overflow-hidden">
           <div className="flex justify-between items-center px-3 pt-3 pb-2">
             <span className="text-[12px] font-semibold text-[#1C1C1E]">전체 내역</span>
