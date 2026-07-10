@@ -44,10 +44,38 @@ export function loadState(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState;
     // 기존에 저장된 데이터에 없는 필드(예: 새로 추가된 nonExpenseCategories)는 기본값으로 채운다.
-    return { ...initialState, ...(JSON.parse(raw) as Partial<AppState>) } as AppState;
+    const merged = { ...initialState, ...(JSON.parse(raw) as Partial<AppState>) } as AppState;
+    const reconciled = reconcileBalances(merged);
+    // 구분의 "비용 제외" 설정이 바뀐 뒤 앱을 새로고침하지 않고 방치된 경우에도, 열 때마다
+    // 자동으로 잔액을 현재 설정에 맞게 바로잡고 그 결과를 저장해둔다.
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(reconciled));
+    return reconciled;
   } catch {
     return initialState;
   }
+}
+
+/**
+ * 모든 지출 거래를 현재 nonExpenseCategories 설정과 비교해, 저장된 excludedFromBalance 값이
+ * 어긋난 거래(구분을 나중에 "비용 제외"로 켜거나 끈 뒤 앱을 새로고침하지 않고 방치된 경우 등)를
+ * 찾아 계좌 잔액에 그 차이를 되돌려주고 플래그도 현재 설정에 맞게 다시 저장한다.
+ */
+export function reconcileBalances(state: AppState): AppState {
+  const balanceDeltas = new Map<number, number>();
+  const transactions = state.transactions.map(t => {
+    if (t.type !== 'expense') return t;
+    const shouldExclude = state.nonExpenseCategories.includes(t.category);
+    const wasExcluded = !!t.excludedFromBalance;
+    if (shouldExclude === wasExcluded) return t;
+    const delta = shouldExclude ? t.amount : -t.amount;
+    balanceDeltas.set(t.accountId, (balanceDeltas.get(t.accountId) ?? 0) + delta);
+    return { ...t, excludedFromBalance: shouldExclude };
+  });
+  if (balanceDeltas.size === 0) return { ...state, transactions };
+  const accounts = state.accounts.map(a =>
+    balanceDeltas.has(a.id) ? { ...a, balance: a.balance + (balanceDeltas.get(a.id) ?? 0) } : a
+  );
+  return { ...state, transactions, accounts };
 }
 
 export function saveState(state: AppState): void {
