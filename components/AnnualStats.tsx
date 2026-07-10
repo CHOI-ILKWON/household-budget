@@ -18,9 +18,11 @@ export default function AnnualStats({ state }: Props) {
   const year = new Date().getFullYear();
 
   const yearTxs = state.transactions.filter(t => t.date.startsWith(String(year)));
+  // 지출 통계에서는 "비용 제외" 구분(예: 회사 청구 예정 출장비)을 뺀다. 수입 통계는 영향 없음.
+  const isCounted = (t: Transaction) => tab !== 'expense' || !state.nonExpenseCategories.includes(t.category);
 
   const byCategory = yearTxs
-    .filter(t => t.type === tab && t.category)
+    .filter(t => t.type === tab && t.category && isCounted(t))
     .reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + t.amount;
       return acc;
@@ -31,7 +33,7 @@ export default function AnnualStats({ state }: Props) {
 
   const monthlyData = Array.from({ length: 12 }, (_, i) => {
     const mk = `${year}-${String(i + 1).padStart(2, '0')}`;
-    return yearTxs.filter(t => t.date.startsWith(mk) && t.type === tab).reduce((s, t) => s + t.amount, 0);
+    return yearTxs.filter(t => t.date.startsWith(mk) && t.type === tab && isCounted(t)).reduce((s, t) => s + t.amount, 0);
   });
 
   useEffect(() => {
@@ -107,7 +109,7 @@ export default function AnnualStats({ state }: Props) {
 
       {/* 월별 통계 (구분별) — 슬라이드/화살표로 월 전환, 세부 내역 펼치기 */}
       <MonthlyStatsCarousel
-        transactions={state.transactions.filter(t => t.type === tab)}
+        transactions={state.transactions.filter(t => t.type === tab && isCounted(t))}
         year={year}
         title={`월별 ${tab === 'expense' ? '지출' : '수입'} 통계 (구분별)`}
         accounts={state.accounts}

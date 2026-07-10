@@ -41,14 +41,17 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
   });
 
   const mInc = allTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-  const mExp = allTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  // "비용 제외"로 지정된 구분(예: 회사 청구 예정 출장비)은 지출 합계에서 제외
+  const mExp = allTxs
+    .filter(t => t.type === 'expense' && !state.nonExpenseCategories.includes(t.category))
+    .reduce((s, t) => s + t.amount, 0);
   const mTrIn = allTxs.filter(t => t.type === 'transfer').reduce((s, t) => s + t.amount, 0);
 
   const fixedExpenses = state.fixedExpenses.filter(f => f.accountId === accountId);
 
   // 계좌별 월별 지출통계 (구분별) — 위 "이번달 요약"과 동일한 청구월(bYear/bMonth)을 그대로 공유
   const accountExpenseTxs = state.transactions.filter(
-    t => t.type === 'expense' && t.accountId === accountId
+    t => t.type === 'expense' && t.accountId === accountId && !state.nonExpenseCategories.includes(t.category)
   );
 
   const addTx = (tx: Omit<Transaction, 'id'>) => {

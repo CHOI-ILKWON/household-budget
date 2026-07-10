@@ -3,12 +3,14 @@ import { useState } from 'react';
 
 interface Props {
   categories: string[];
+  nonExpenseCategories: string[];
   onUpdate: (categories: string[]) => void;
   onRename: (oldName: string, newName: string) => void;
+  onToggleNonExpense: (name: string) => void;
   onClose: () => void;
 }
 
-export default function CategoryModal({ categories, onUpdate, onRename, onClose }: Props) {
+export default function CategoryModal({ categories, nonExpenseCategories, onUpdate, onRename, onToggleNonExpense, onClose }: Props) {
   const [newCat, setNewCat] = useState('');
   const [editing, setEditing] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
@@ -35,34 +37,46 @@ export default function CategoryModal({ categories, onUpdate, onRename, onClose 
         onClick={e => e.stopPropagation()}
       >
         <div className="w-10 h-1 bg-[#E5E5EA] rounded-full mx-auto mb-5" />
-        <h2 className="text-[17px] font-semibold text-[#1C1C1E] mb-4">구분 관리</h2>
+        <h2 className="text-[17px] font-semibold text-[#1C1C1E] mb-1">구분 관리</h2>
+        <p className="text-[11px] text-[#8E8E93] mb-4">
+          &#34;비용 제외&#34;로 설정한 구분은 잔액 계산에는 그대로 반영되지만 지출 합계·통계에서는 빠집니다 (예: 회사에 청구할 출장비)
+        </p>
 
         <div className="max-h-64 overflow-y-auto mb-4">
-          {categories.map(cat => (
-            <div key={cat} className="flex items-center py-3 border-b border-[#F2F2F7] last:border-0">
-              {editing === cat ? (
-                <>
-                  <input
-                    autoFocus
-                    value={editName}
-                    onChange={e => setEditName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && handleRename(cat)}
-                    className="flex-1 bg-[#F2F2F7] rounded-xl px-3 py-2 text-[14px] border-none outline-none text-[#1C1C1E]"
-                  />
-                  <button onClick={() => handleRename(cat)} className="text-[13px] text-[#007AFF] ml-3 font-medium">저장</button>
-                  <button onClick={() => setEditing(null)} className="text-[13px] text-[#8E8E93] ml-2">취소</button>
-                </>
-              ) : (
-                <>
-                  <span className="flex-1 text-[14px] text-[#1C1C1E]">{cat}</span>
-                  <button
-                    onClick={() => { setEditing(cat); setEditName(cat); }}
-                    className="text-[12px] text-[#007AFF] font-medium"
-                  >수정</button>
-                </>
-              )}
-            </div>
-          ))}
+          {categories.map(cat => {
+            const isNonExpense = nonExpenseCategories.includes(cat);
+            return (
+              <div key={cat} className="flex items-center py-3 border-b border-[#F2F2F7] last:border-0">
+                {editing === cat ? (
+                  <>
+                    <input
+                      autoFocus
+                      value={editName}
+                      onChange={e => setEditName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && handleRename(cat)}
+                      className="flex-1 bg-[#F2F2F7] rounded-xl px-3 py-2 text-[14px] border-none outline-none text-[#1C1C1E]"
+                    />
+                    <button onClick={() => handleRename(cat)} className="text-[13px] text-[#007AFF] ml-3 font-medium">저장</button>
+                    <button onClick={() => setEditing(null)} className="text-[13px] text-[#8E8E93] ml-2">취소</button>
+                  </>
+                ) : (
+                  <>
+                    <span className="flex-1 text-[14px] text-[#1C1C1E]">{cat}</span>
+                    <button
+                      onClick={() => onToggleNonExpense(cat)}
+                      className={`text-[11px] px-2 py-1 rounded-full font-medium mr-2 transition-all ${
+                        isNonExpense ? 'bg-[#FF9500] text-white' : 'bg-[#F2F2F7] text-[#8E8E93]'
+                      }`}
+                    >비용 제외</button>
+                    <button
+                      onClick={() => { setEditing(cat); setEditName(cat); }}
+                      className="text-[12px] text-[#007AFF] font-medium"
+                    >수정</button>
+                  </>
+                )}
+              </div>
+            );
+          })}
         </div>
 
         <div className="flex gap-2">

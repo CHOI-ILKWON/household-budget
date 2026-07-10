@@ -30,6 +30,7 @@ export interface AppState {
   transactions: Transaction[];
   fixedExpenses: FixedExpense[];
   categories: string[];
+  nonExpenseCategories: string[]; // 이 구분에 속한 지출은 실제 비용이 아니므로(예: 회사 청구 예정) 지출 합계/통계에서 제외
   monthlyGoal: number;
   annualGoal: number;
 }

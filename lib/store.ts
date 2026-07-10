@@ -43,7 +43,8 @@ export function loadState(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return initialState;
-    return JSON.parse(raw) as AppState;
+    // 기존에 저장된 데이터에 없는 필드(예: 새로 추가된 nonExpenseCategories)는 기본값으로 채운다.
+    return { ...initialState, ...(JSON.parse(raw) as Partial<AppState>) } as AppState;
   } catch {
     return initialState;
   }

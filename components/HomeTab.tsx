@@ -28,6 +28,13 @@ function sumType(txs: Transaction[], type: Transaction['type']) {
   return txs.filter(t => t.type === type).reduce((s, t) => s + t.amount, 0);
 }
 
+// 지출 중 "비용 제외" 구분(예: 회사 청구 예정 출장비)은 지출 합계에서 빼고 계산
+function sumExpense(txs: Transaction[], nonExpenseCategories: string[]) {
+  return txs
+    .filter(t => t.type === 'expense' && !nonExpenseCategories.includes(t.category))
+    .reduce((s, t) => s + t.amount, 0);
+}
+
 function fmt(n: number) { return Math.abs(n).toLocaleString('ko-KR'); }
 
 export default function HomeTab({ state, onChange }: Props) {
@@ -46,10 +53,10 @@ export default function HomeTab({ state, onChange }: Props) {
   const yTxs = state.transactions.filter(t => t.date.startsWith(String(year)));
 
   const mInc = sumType(mTxs, 'income');
-  const mExp = sumType(mTxs, 'expense');
+  const mExp = sumExpense(mTxs, state.nonExpenseCategories);
   const mRem = mInc - mExp;
   const yInc = sumType(yTxs, 'income');
-  const yExp = sumType(yTxs, 'expense');
+  const yExp = sumExpense(yTxs, state.nonExpenseCategories);
   const yRem = yInc - yExp;
   const mSave = Math.max(0, mRem);
   const ySave = Math.max(0, yRem);
@@ -76,7 +83,7 @@ export default function HomeTab({ state, onChange }: Props) {
   const filtered = catFilter ? mTxs.filter(t => t.category === catFilter) : mTxs;
   const displayTxs = filtered.filter(t => t.type !== 'transfer' || t.toAccountId !== undefined);
   const sorted = [...displayTxs].sort((a, b) => b.date.localeCompare(a.date));
-  const filteredExpTotal = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const filteredExpTotal = sumExpense(filtered, state.nonExpenseCategories);
 
   const prevMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() - 1); setViewDate(d); };
   const nextMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() + 1); setViewDate(d); };
@@ -374,12 +381,23 @@ export default function HomeTab({ state, onChange }: Props) {
       {showCat && (
         <CategoryModal
           categories={state.categories}
+          nonExpenseCategories={state.nonExpenseCategories}
           onUpdate={cats => onChange({ ...state, categories: cats })}
           onRename={(old, newName) => {
             onChange({
               ...state,
               categories: state.categories.map(c => c === old ? newName : c),
+              nonExpenseCategories: state.nonExpenseCategories.map(c => c === old ? newName : c),
               transactions: state.transactions.map(t => t.category === old ? { ...t, category: newName } : t),
+            });
+          }}
+          onToggleNonExpense={name => {
+            const has = state.nonExpenseCategories.includes(name);
+            onChange({
+              ...state,
+              nonExpenseCategories: has
+                ? state.nonExpenseCategories.filter(c => c !== name)
+                : [...state.nonExpenseCategories, name],
             });
           }}
           onClose={() => setShowCat(false)}

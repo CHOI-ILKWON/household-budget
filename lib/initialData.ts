@@ -16,6 +16,7 @@ export const initialState: AppState = {
   transactions: [],
   fixedExpenses: [],
   categories: ['식비', '생활', '교통', '의료', '대출', '보험', '저축', '기타'],
+  nonExpenseCategories: [],
   monthlyGoal: 1200000,
   annualGoal: 14400000,
 };
