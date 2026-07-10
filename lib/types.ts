@@ -16,6 +16,10 @@ export interface Transaction {
   category: string;
   amount: number;
   note: string;
+  // 생성/수정 시점에 구분이 "비용 제외"였는지 저장해둔다. 이후 구분의 비용 제외 여부가 바뀌어도
+  // 이미 만들어진 거래의 잔액 반영 여부는 그대로 유지되어야 하므로(수정/삭제 시 되돌릴 때 필요) 매번
+  // 다시 계산하지 않고 이 값을 그대로 사용한다.
+  excludedFromBalance?: boolean;
 }
 
 export interface FixedExpense {

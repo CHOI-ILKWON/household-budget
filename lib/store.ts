@@ -1,4 +1,4 @@
-import { AppState } from './types';
+import { AppState, Transaction } from './types';
 import { initialState } from './initialData';
 
 const STORAGE_KEY = 'household_budget_v3';
@@ -53,6 +53,21 @@ export function loadState(): AppState {
 export function saveState(state: AppState): void {
   if (typeof window === 'undefined') return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/**
+ * 거래를 새로 만들거나 구분을 바꿀 때, 그 시점의 "비용 제외" 설정에 따라 이 거래가 잔액에
+ * 반영돼야 하는지를 결정한다. 이렇게 결정된 값은 Transaction.excludedFromBalance에 저장해두고,
+ * 이후 수정/삭제 시에는 (구분의 비용 제외 설정이 바뀌었더라도) 저장된 값을 그대로 사용해야
+ * 잔액이 어긋나지 않는다.
+ */
+export function isExcludedFromBalance(tx: Pick<Transaction, 'type' | 'category'>, nonExpenseCategories: string[]): boolean {
+  return tx.type === 'expense' && nonExpenseCategories.includes(tx.category);
+}
+
+/** 거래에 저장된 excludedFromBalance 값을 기준으로 잔액에 반영해야 하는 지출인지 판단한다 */
+export function affectsBalance(tx: Pick<Transaction, 'type' | 'excludedFromBalance'>): boolean {
+  return !(tx.type === 'expense' && tx.excludedFromBalance);
 }
 
 export function formatKRW(amount: number): string {

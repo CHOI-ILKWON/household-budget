@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { AppState, Transaction } from '@/lib/types';
-import { getBillingDate, getBillingRange, isInBillingMonth } from '@/lib/store';
+import { getBillingDate, getBillingRange, isInBillingMonth, affectsBalance, isExcludedFromBalance } from '@/lib/store';
 import AddTransactionModal from './AddTransactionModal';
 import CategoryModal from './CategoryModal';
 import GoalModal from './GoalModal';
@@ -91,8 +91,10 @@ export default function HomeTab({ state, onChange }: Props) {
 
   const addTx = (tx: Omit<Transaction, 'id'>) => {
     const id = `tx_${Date.now()}_${Math.random()}`;
+    const excludedFromBalance = isExcludedFromBalance(tx, state.nonExpenseCategories);
+    const fullTx: Transaction = { ...tx, id, excludedFromBalance };
     const newAccounts = state.accounts.map(a => {
-      if (tx.type === 'expense' && a.id === tx.accountId) return { ...a, balance: a.balance - tx.amount };
+      if (tx.type === 'expense' && affectsBalance(fullTx) && a.id === tx.accountId) return { ...a, balance: a.balance - tx.amount };
       if (tx.type === 'income' && a.id === tx.accountId) return { ...a, balance: a.balance + tx.amount };
       if (tx.type === 'transfer') {
         if (a.id === tx.accountId) return { ...a, balance: a.balance - tx.amount };
@@ -100,14 +102,14 @@ export default function HomeTab({ state, onChange }: Props) {
       }
       return a;
     });
-    onChange({ ...state, transactions: [...state.transactions, { ...tx, id }], accounts: newAccounts });
+    onChange({ ...state, transactions: [...state.transactions, fullTx], accounts: newAccounts });
   };
 
   const handleEditTx = (updated: Transaction) => {
     const old = state.transactions.find(t => t.id === updated.id);
     if (!old) return;
     let newAccounts = state.accounts.map(a => {
-      if (old.type === 'expense' && a.id === old.accountId) return { ...a, balance: a.balance + old.amount };
+      if (old.type === 'expense' && affectsBalance(old) && a.id === old.accountId) return { ...a, balance: a.balance + old.amount };
       if (old.type === 'income' && a.id === old.accountId) return { ...a, balance: a.balance - old.amount };
       if (old.type === 'transfer') {
         if (a.id === old.accountId) return { ...a, balance: a.balance + old.amount };
@@ -115,19 +117,20 @@ export default function HomeTab({ state, onChange }: Props) {
       }
       return a;
     });
+    const updatedFull: Transaction = { ...updated, excludedFromBalance: isExcludedFromBalance(updated, state.nonExpenseCategories) };
     newAccounts = newAccounts.map(a => {
-      if (updated.type === 'expense' && a.id === updated.accountId) return { ...a, balance: a.balance - updated.amount };
-      if (updated.type === 'income' && a.id === updated.accountId) return { ...a, balance: a.balance + updated.amount };
-      if (updated.type === 'transfer') {
-        if (a.id === updated.accountId) return { ...a, balance: a.balance - updated.amount };
-        if (a.id === updated.toAccountId) return { ...a, balance: a.balance + updated.amount };
+      if (updatedFull.type === 'expense' && affectsBalance(updatedFull) && a.id === updatedFull.accountId) return { ...a, balance: a.balance - updatedFull.amount };
+      if (updatedFull.type === 'income' && a.id === updatedFull.accountId) return { ...a, balance: a.balance + updatedFull.amount };
+      if (updatedFull.type === 'transfer') {
+        if (a.id === updatedFull.accountId) return { ...a, balance: a.balance - updatedFull.amount };
+        if (a.id === updatedFull.toAccountId) return { ...a, balance: a.balance + updatedFull.amount };
       }
       return a;
     });
     onChange({
       ...state,
       accounts: newAccounts,
-      transactions: state.transactions.map(t => t.id === updated.id ? updated : t),
+      transactions: state.transactions.map(t => t.id === updatedFull.id ? updatedFull : t),
     });
     setEditTx(null);
   };
@@ -136,7 +139,7 @@ export default function HomeTab({ state, onChange }: Props) {
     const tx = state.transactions.find(t => t.id === txId);
     if (!tx) return;
     const newAccounts = state.accounts.map(a => {
-      if (tx.type === 'expense' && a.id === tx.accountId) return { ...a, balance: a.balance + tx.amount };
+      if (tx.type === 'expense' && affectsBalance(tx) && a.id === tx.accountId) return { ...a, balance: a.balance + tx.amount };
       if (tx.type === 'income' && a.id === tx.accountId) return { ...a, balance: a.balance - tx.amount };
       if (tx.type === 'transfer') {
         if (a.id === tx.accountId) return { ...a, balance: a.balance + tx.amount };

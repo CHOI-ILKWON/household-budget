@@ -39,7 +39,7 @@ export default function CategoryModal({ categories, nonExpenseCategories, onUpda
         <div className="w-10 h-1 bg-[#E5E5EA] rounded-full mx-auto mb-5" />
         <h2 className="text-[17px] font-semibold text-[#1C1C1E] mb-1">구분 관리</h2>
         <p className="text-[11px] text-[#8E8E93] mb-4">
-          &#34;비용 제외&#34;로 설정한 구분은 잔액 계산에는 그대로 반영되지만 지출 합계·통계에서는 빠집니다 (예: 회사에 청구할 출장비)
+          &#34;비용 제외&#34;로 설정한 구분은 계좌 잔액과 지출 합계·통계에 전혀 영향을 주지 않습니다 (예: 회사에 청구할 출장비)
         </p>
 
         <div className="max-h-64 overflow-y-auto mb-4">
