@@ -396,12 +396,28 @@ export default function HomeTab({ state, onChange }: Props) {
           }}
           onToggleNonExpense={name => {
             const has = state.nonExpenseCategories.includes(name);
-            onChange({
-              ...state,
-              nonExpenseCategories: has
-                ? state.nonExpenseCategories.filter(c => c !== name)
-                : [...state.nonExpenseCategories, name],
+            const willExclude = !has;
+            const nonExpenseCategories = has
+              ? state.nonExpenseCategories.filter(c => c !== name)
+              : [...state.nonExpenseCategories, name];
+
+            // 이 구분에 이미 등록된 지출들의 excludedFromBalance를 새 설정에 맞춰 다시 계산하고,
+            // 그 차이만큼 계좌 잔액에도 소급 반영한다 (제외로 켜면 그동안 차감된 만큼 돌려주고,
+            // 끄면 반대로 다시 차감한다).
+            const balanceDeltas = new Map<number, number>();
+            const transactions = state.transactions.map(t => {
+              if (t.type !== 'expense' || t.category !== name) return t;
+              const wasExcluded = !!t.excludedFromBalance;
+              if (wasExcluded === willExclude) return t;
+              const delta = willExclude ? t.amount : -t.amount;
+              balanceDeltas.set(t.accountId, (balanceDeltas.get(t.accountId) ?? 0) + delta);
+              return { ...t, excludedFromBalance: willExclude };
             });
+            const accounts = state.accounts.map(a =>
+              balanceDeltas.has(a.id) ? { ...a, balance: a.balance + (balanceDeltas.get(a.id) ?? 0) } : a
+            );
+
+            onChange({ ...state, nonExpenseCategories, transactions, accounts });
           }}
           onClose={() => setShowCat(false)}
         />

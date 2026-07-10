@@ -50,9 +50,8 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
   const fixedExpenses = state.fixedExpenses.filter(f => f.accountId === accountId);
 
   // 계좌별 월별 지출통계 (구분별) — 위 "이번달 요약"과 동일한 청구월(bYear/bMonth)을 그대로 공유
-  const accountExpenseTxs = state.transactions.filter(
-    t => t.type === 'expense' && t.accountId === accountId && !state.nonExpenseCategories.includes(t.category)
-  );
+  // 비용 제외 구분도 함께 넘겨서 목록엔 표시하되(합계에는 반영 안 됨) MonthlyStatsCarousel이 구분해서 그린다
+  const accountExpenseTxs = state.transactions.filter(t => t.type === 'expense' && t.accountId === accountId);
 
   const addTx = (tx: Omit<Transaction, 'id'>) => {
     const id = `tx_${Date.now()}_${Math.random()}`;
@@ -255,6 +254,7 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
       {/* 월별 지출통계 (구분별) — 위 월 네비게이션과 동기화, 세부 내역 펼치기 + 수정/삭제 */}
       <MonthlyStatsCarousel
         transactions={accountExpenseTxs}
+        nonExpenseCategories={state.nonExpenseCategories}
         year={bYear}
         month={bMonth}
         onPrevMonth={prevMonth}
