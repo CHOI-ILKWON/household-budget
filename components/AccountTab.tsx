@@ -12,10 +12,6 @@ interface Props {
   onAccountDeleted?: () => void;
 }
 
-const SL = ({ children }: { children: React.ReactNode }) => (
-  <div className="text-[11px] text-[#8E8E93] uppercase tracking-widest font-semibold mb-2">{children}</div>
-);
-
 export default function AccountTab({ accountId, state, onChange, onAccountDeleted }: Props) {
   const [showAdd, setShowAdd] = useState(false);
   const [txType, setTxType] = useState<Transaction['type']>('expense');
@@ -46,8 +42,6 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
     .filter(t => t.type === 'expense' && !state.nonExpenseCategories.includes(t.category))
     .reduce((s, t) => s + t.amount, 0);
   const mTrIn = allTxs.filter(t => t.type === 'transfer').reduce((s, t) => s + t.amount, 0);
-
-  const fixedExpenses = state.fixedExpenses.filter(f => f.accountId === accountId);
 
   // 계좌별 월별 지출통계 (구분별) — 위 "이번달 요약"과 동일한 청구월(bYear/bMonth)을 그대로 공유
   // 비용 제외 구분도 함께 넘겨서 목록엔 표시하되(합계에는 반영 안 됨) MonthlyStatsCarousel이 구분해서 그린다
@@ -229,27 +223,6 @@ export default function AccountTab({ accountId, state, onChange, onAccountDelete
           </div>
         ))}
       </div>
-
-      {/* 고정지출 (표시 전용) */}
-      {fixedExpenses.length > 0 && (
-        <div className="bg-white rounded-2xl border border-[#E5E5EA] overflow-hidden">
-          <div className="px-4 pt-4 pb-2">
-            <SL>고정지출 (표시 전용)</SL>
-          </div>
-          {fixedExpenses.map(f => (
-            <div key={f.id} className="flex justify-between items-center px-4 py-2.5 border-b border-[#F2F2F7] last:border-0">
-              <span className="text-[13px] text-[#1C1C1E]">{f.name}</span>
-              <span className="text-[13px] text-[#FF3B30]">{f.amount.toLocaleString()}원</span>
-            </div>
-          ))}
-          <div className="flex justify-between items-center px-4 py-2.5 bg-[#F2F2F7]">
-            <span className="text-[12px] font-semibold text-[#1C1C1E]">합계</span>
-            <span className="text-[12px] font-semibold text-[#FF3B30]">
-              {fixedExpenses.reduce((s, f) => s + f.amount, 0).toLocaleString()}원
-            </span>
-          </div>
-        </div>
-      )}
 
       {/* 월별 지출통계 (구분별) — 위 월 네비게이션과 동기화, 세부 내역 펼치기 + 수정/삭제 */}
       <MonthlyStatsCarousel
