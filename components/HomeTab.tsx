@@ -334,7 +334,7 @@ export default function HomeTab({ state, onChange }: Props) {
                         <span className="text-[11px] font-semibold text-[#FF9500]">{f.amount.toLocaleString()}</span>
                         <button
                           onClick={() => deleteFixedExpense(f.id)}
-                          className="text-[9px] text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-[11px] text-[#C7C7CC] px-1"
                         >✕</button>
                       </div>
                     </div>
@@ -401,7 +401,7 @@ export default function HomeTab({ state, onChange }: Props) {
                     </span>
                     <button
                       onClick={e => { e.stopPropagation(); deleteTx(t.id); }}
-                      className="text-[9px] text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-[11px] text-[#C7C7CC] px-1"
                     >✕</button>
                   </div>
                 </div>

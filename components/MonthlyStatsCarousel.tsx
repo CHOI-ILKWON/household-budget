@@ -55,7 +55,7 @@ function CategoryRow({
                   {onDelete && (
                     <button
                       onClick={e => { e.stopPropagation(); onDelete(t.id); }}
-                      className="text-[10px] text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="text-[12px] text-[#C7C7CC] px-1"
                     >✕</button>
                   )}
                 </div>
