@@ -87,7 +87,8 @@ export default function HomeTab({ state, onChange }: Props) {
 
   // 보험료·대출원리금처럼 정기적으로 나가는 고정비 (구분과 무관하게 거래별로 체크된 것)
   const fixedTxs = [...mTxs.filter(t => t.isFixed)].sort((a, b) => b.date.localeCompare(a.date));
-  const fixedTotal = fixedTxs.reduce((s, t) => s + t.amount, 0);
+  // 예전 "고정추가 (표시만)" 방식으로 등록된 항목들 — 실제 거래가 아니라 잔액엔 영향 없음
+  const fixedTotal = fixedTxs.reduce((s, t) => s + t.amount, 0) + state.fixedExpenses.reduce((s, f) => s + f.amount, 0);
 
   const prevMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() - 1); setViewDate(d); };
   const nextMonth = () => { const d = new Date(viewDate); d.setMonth(d.getMonth() + 1); setViewDate(d); };
@@ -157,6 +158,10 @@ export default function HomeTab({ state, onChange }: Props) {
   const addCategory = (name: string) => {
     if (state.categories.includes(name)) return;
     onChange({ ...state, categories: [...state.categories, name] });
+  };
+
+  const deleteFixedExpense = (id: string) => {
+    onChange({ ...state, fixedExpenses: state.fixedExpenses.filter(f => f.id !== id) });
   };
 
   const txColor = (type: Transaction['type']) =>
@@ -297,24 +302,46 @@ export default function HomeTab({ state, onChange }: Props) {
             <span className="text-[12px] font-semibold text-[#1C1C1E]">고정비</span>
           </div>
           <div className="overflow-y-auto max-h-64 px-3 flex-1">
-            {fixedTxs.length === 0 ? (
+            {fixedTxs.length === 0 && state.fixedExpenses.length === 0 ? (
               <div className="text-[10px] text-[#C7C7CC] text-center py-8">등록된 고정비 없음</div>
-            ) : fixedTxs.map(t => {
-              const acc = state.accounts.find(a => a.id === t.accountId);
-              return (
-                <div
-                  key={t.id}
-                  className="flex justify-between items-center py-1.5 border-b border-[#F2F2F7] last:border-0 cursor-pointer active:bg-[#F2F2F7] rounded-lg"
-                  onClick={() => setEditTx(t)}
-                >
-                  <div className="min-w-0">
-                    <div className="text-[11px] text-[#1C1C1E] truncate">{t.note || t.category}</div>
-                    <div className="text-[10px] text-[#8E8E93] truncate">{acc?.name}</div>
-                  </div>
-                  <span className="text-[11px] font-semibold text-[#FF9500] shrink-0 ml-1">{t.amount.toLocaleString()}</span>
-                </div>
-              );
-            })}
+            ) : (
+              <>
+                {fixedTxs.map(t => {
+                  const acc = state.accounts.find(a => a.id === t.accountId);
+                  return (
+                    <div
+                      key={t.id}
+                      className="flex justify-between items-center py-1.5 border-b border-[#F2F2F7] last:border-0 cursor-pointer active:bg-[#F2F2F7] rounded-lg"
+                      onClick={() => setEditTx(t)}
+                    >
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-[#1C1C1E] truncate">{t.note || t.category}</div>
+                        <div className="text-[10px] text-[#8E8E93] truncate">{acc?.name}</div>
+                      </div>
+                      <span className="text-[11px] font-semibold text-[#FF9500] shrink-0 ml-1">{t.amount.toLocaleString()}</span>
+                    </div>
+                  );
+                })}
+                {state.fixedExpenses.map(f => {
+                  const acc = state.accounts.find(a => a.id === f.accountId);
+                  return (
+                    <div key={f.id} className="flex justify-between items-center py-1.5 border-b border-[#F2F2F7] last:border-0 group">
+                      <div className="min-w-0">
+                        <div className="text-[11px] text-[#1C1C1E] truncate">{f.name}</div>
+                        <div className="text-[10px] text-[#C7C7CC] truncate">{acc?.name} · 표시만 (잔액 미반영)</div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0 ml-1">
+                        <span className="text-[11px] font-semibold text-[#FF9500]">{f.amount.toLocaleString()}</span>
+                        <button
+                          onClick={() => deleteFixedExpense(f.id)}
+                          className="text-[9px] text-[#C7C7CC] opacity-0 group-hover:opacity-100 transition-opacity"
+                        >✕</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
           <div className="flex justify-between items-center px-3 py-2.5 bg-[#FFF6EC] mt-auto">
             <span className="text-[11px] font-semibold text-[#FF9500]">고정비 합계</span>
