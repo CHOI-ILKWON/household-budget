@@ -301,7 +301,7 @@ export default function HomeTab({ state, onChange }: Props) {
           <div className="px-3 pt-3 pb-2">
             <span className="text-[12px] font-semibold text-[#1C1C1E]">고정비</span>
           </div>
-          <div className="overflow-y-auto max-h-64 px-3 flex-1">
+          <div className="px-3 flex-1">
             {fixedTxs.length === 0 && state.fixedExpenses.length === 0 ? (
               <div className="text-[10px] text-[#C7C7CC] text-center py-8">등록된 고정비 없음</div>
             ) : (
