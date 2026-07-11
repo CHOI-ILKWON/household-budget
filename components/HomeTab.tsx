@@ -77,13 +77,15 @@ export default function HomeTab({ state, onChange }: Props) {
   const expPct = totalUsed > 0 ? Math.min(100, Math.round((mExp / totalUsed) * 100)) : 0;
   const savPct = totalUsed > 0 ? Math.min(100 - expPct, Math.round((mSave / totalUsed) * 100)) : 0;
 
+  // 전체 내역엔 고정비(isFixed)와 비용 제외 구분 거래는 빼고, 나머지(변동비 위주)만 보여준다
+  const mTxsExclFixed = mTxs.filter(t => !t.isFixed && !(t.type === 'expense' && state.nonExpenseCategories.includes(t.category)));
   const usedCats = Array.from(new Set(
-    mTxs.filter(t => t.type !== 'transfer' && t.category).map(t => t.category)
+    mTxsExclFixed.filter(t => t.type !== 'transfer' && t.category).map(t => t.category)
   ));
-  const filtered = catFilter ? mTxs.filter(t => t.category === catFilter) : mTxs;
+  const filtered = catFilter ? mTxsExclFixed.filter(t => t.category === catFilter) : mTxsExclFixed;
   const displayTxs = filtered.filter(t => t.type !== 'transfer' || t.toAccountId !== undefined);
   const sorted = [...displayTxs].sort((a, b) => b.date.localeCompare(a.date));
-  const filteredExpTotal = sumExpense(filtered, state.nonExpenseCategories);
+  const filteredExpTotal = filtered.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
   // 보험료·대출원리금처럼 정기적으로 나가는 고정비 (구분과 무관하게 거래별로 체크된 것)
   const fixedTxs = [...mTxs.filter(t => t.isFixed)].sort((a, b) => b.date.localeCompare(a.date));
